@@ -4,25 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Поделиться номером</title>
-    <!-- Надежный источник VK Bridge -->
     <script src="vk-bridge.js"></script>
 </head>
 <body>
-    <h1>ТЕСТ ПРИЛОЖЕНИЯ</h1>
+    <h1>ОБРАБОТКА...</h1>
     <p id="status" style="color: blue; font-size: 20px;">Страница загружена. Ждем VK Bridge...</p>
     
     <script>
-        // Функция для вывода текста на экран
         function log(text) {
             document.getElementById('status').innerText = text;
-            console.log(text); // Дублируем в консоль браузера
+            console.log(text);
         }
 
-        // Шаг 1
         log("Шаг 1: Проверка vkBridge...");
         
         if (typeof vkBridge === 'undefined') {
-            log("ОШИБКА: vkBridge не загрузился (проверьте блокировщики рекламы)!");
+            log("ОШИБКА: vkBridge не загрузился!");
         } else {
             log("Шаг 2: vkBridge найден. Инициализация...");
             
@@ -34,17 +31,28 @@
                     const userId = urlParams.get('vk_user_id');
                     
                     if (!userId) {
-                        log("ОШИБКА: ВК не передал ID пользователя в URL!");
+                        log("ОШИБКА: ВК не передал ID пользователя!");
                         return;
                     }
                     
-                    log("Шаг 4: ID пользователя получен (" + userId + "). Запрос номера...");
+                    log("Шаг 4: ID получен. Запрос номера...");
                     
                     vkBridge.send('VKWebAppGetPhoneNumber')
                         .then(function(data) {
-                            const phone = data.phone;
-                            log("Шаг 5: Номер получен: " + phone + ". Отправляем боту...");
+                            // Выводим весь ответ ВК, чтобы увидеть структуру
+                            log("Шаг 5: Ответ ВК: " + JSON.stringify(data));
                             
+                            // Достаем номер из ответа
+                            var phone = data.phone || (data.payload && data.payload.phone) || "не найден";
+                            
+                            if (phone === "не найден") {
+                                log("ОШИБКА: Номер не найден в ответе.");
+                                return;
+                            }
+
+                            log("Шаг 5.1: Номер " + phone + ". Отправляем боту...");
+                            
+                            // ВСТАВЬТЕ СЮДА НОВУЮ ССЫЛКУ ОТ CLOUDFLARE
                             const BOT_WEBHOOK_URL = "https://grande-oval-called-shopper.trycloudflare.com/phone/";
                             
                             fetch(BOT_WEBHOOK_URL, {
@@ -54,21 +62,21 @@
                             })
                             .then(function(response) {
                                 if (response.ok) {
-                                    log("Шаг 6: УСПЕХ! Бот получил номер. Можно закрывать окно.");
+                                    log("Шаг 6: УСПЕХ! Бот получил номер.");
                                 } else {
-                                    log("ОШИБКА Шаг 6: Бот вернул ошибку " + response.status);
+                                    log("ОШИБКА Шаг 6: Бот вернул " + response.status);
                                 }
                             })
                             .catch(function(err) {
-                                log("ОШИБКА Шаг 6: Не удалось отправить боту: " + err.message);
+                                log("ОШИБКА Шаг 6: Fetch не удался: " + err.message);
                             });
                         })
                         .catch(function(err) {
-                            log("ОШИБКА Шаг 5: Пользователь отказал в доступе или ошибка: " + JSON.stringify(err));
+                            log("ОШИБКА Шаг 5: Отказ в доступе: " + JSON.stringify(err));
                         });
                 })
                 .catch(function(err) {
-                    log("ОШИБКА Шаг 3: Ошибка инициализации: " + JSON.stringify(err));
+                    log("ОШИБКА Шаг 3: " + JSON.stringify(err));
                 });
         }
     </script>
