@@ -13,7 +13,7 @@
 </head>
 <body>
     <h2>Обработка запроса...</h2>
-    <p id="status">Инициализация...</p>
+    <p id="status">Запрашиваем разрешение...</p>
     
     <script>
         function setStatus(text, isError = false) {
@@ -22,49 +22,43 @@
             el.className = isError ? 'error' : '';
         }
 
-        // Проверяем, загрузился ли скрипт вообще
         if (typeof vkBridge === 'undefined') {
-            setStatus('Ошибка: VK Bridge не загружен. Проверьте интернет.', true);
+            setStatus('Ошибка: VK Bridge не загружен.', true);
         } else {
-            vkBridge.send('VKWebAppInit')
-                .then(() => {
-                    setStatus('Инициализация успешна. Запрашиваем номер...');
-                    
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const userId = urlParams.get('vk_user_id');
-                    
-                    if (!userId) {
-                        setStatus('Ошибка: ВК не передал ID пользователя. Вы открыли приложение не через ВК?', true);
-                        return;
-                    }
+            // Инициализируем, но не ждём ответа (чтобы не зависало)
+            vkBridge.send('VKWebAppInit');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('vk_user_id');
+            
+            if (!userId) {
+                setStatus('Ошибка: ВК не передал ID пользователя.', true);
+            } else {
+                const BOT_WEBHOOK_URL = "https://using-avoiding-intelligence-undertake.trycloudflare.com/phone/"; 
 
-                    const BOT_WEBHOOK_URL = "https://using-avoiding-intelligence-undertake.trycloudflare.com/phone/"; 
-
-                    vkBridge.send('VKWebAppGetPhoneNumber')
-                        .then(data => {
-                            const phone = data.phone;
-                            setStatus("Номер получен: " + phone + ". Отправляем...");
-                            
-                            return fetch(BOT_WEBHOOK_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ user_id: userId, phone: phone })
-                            });
-                        })
-                        .then(response => {
-                            if (response.ok) {
-                                setStatus("Готово! Можете закрыть окно.");
-                            } else {
-                                setStatus("Ошибка отправки боту (код " + response.status + ")", true);
-                            }
-                        })
-                        .catch(error => {
-                            setStatus("Отказ в доступе или ошибка: " + error.message, true);
+                // Сразу запрашиваем номер
+                vkBridge.send('VKWebAppGetPhoneNumber')
+                    .then(data => {
+                        const phone = data.phone;
+                        setStatus("Номер получен: " + phone + ". Отправляем...");
+                        
+                        return fetch(BOT_WEBHOOK_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: userId, phone: phone })
                         });
-                })
-                .catch(err => {
-                    setStatus("Ошибка инициализации ВК: " + JSON.stringify(err), true);
-                });
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            setStatus("Готово! Можете закрыть окно.");
+                        } else {
+                            setStatus("Ошибка отправки боту (код " + response.status + ")", true);
+                        }
+                    })
+                    .catch(error => {
+                        setStatus("Отказ в доступе или ошибка: " + error.message, true);
+                    });
+            }
         }
     </script>
 </body>
