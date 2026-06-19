@@ -43,7 +43,7 @@
                             log("Шаг 5: Ответ ВК: " + JSON.stringify(data));
                             
                             // Достаем номер из ответа
-                            var phone = data.phone || (data.payload && data.payload.phone) || "не найден";
+                            var phone = data.phone_number || data.phone || (data.payload && data.payload.phone) || "не найден";
                             
                             if (phone === "не найден") {
                                 log("ОШИБКА: Номер не найден в ответе.");
