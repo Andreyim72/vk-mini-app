@@ -64,10 +64,19 @@
                                 if (response.ok) {
                                     log("Шаг 6: УСПЕХ! Бот получил номер.");
                                     
-                                    // ЗАКРЫВАЕМ ПРИЛОЖЕНИЕ И ВОЗВРАЩАЕМСЯ В ЧАТ
+                                    // 1. Пытаемся закрыть через VK Bridge
+                                    vkBridge.send("VKWebAppClose", {"status": "success"})
+                                        .catch(function(e) { console.log("Bridge close error", e); });
+
+                                    // 2. Пытаемся закрыть через стандартный JS (срабатывает на некоторых платформах)
                                     setTimeout(function() {
-                                        vkBridge.send("VKWebAppClose", {"status": "success"});
-                                    }, 1000); // Ждем 1 секунду, чтобы пользователь успел прочитать "УСПЕХ"
+                                        window.close();
+                                    }, 500);
+
+                                    // 3. Запасной план для мобильных (показываем кнопку)
+                                    setTimeout(function() {
+                                        document.body.innerHTML = '<div style="margin-top:50px;"><h2>Готово!</h2><p>Ваш номер отправлен боту.</p><br><button onclick="vkBridge.send(\'VKWebAppClose\', {status: \'success\'});" style="padding: 15px 30px; font-size: 18px; background: #2787F5; color: white; border: none; border-radius: 10px; cursor: pointer;">Вернуться в чат</button></div>';
+                                    }, 1000);
                                     
                                 } else {
                                     log("ОШИБКА Шаг 6: Бот вернул " + response.status);
