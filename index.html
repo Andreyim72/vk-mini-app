@@ -3,62 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Разрешаем открывать страницу во фрейме ВК -->
-    <meta http-equiv="X-Frame-Options" content="ALLOWALL">
     <title>Поделиться номером</title>
-    <script src="https://cdn.jsdelivr.net/npm/@vk/vk-bridge/dist/browser.min.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f2f5; color: #333; }
-        h2 { color: #2787F5; }
-        .error { color: red; font-weight: bold; }
-    </style>
+    <!-- Надежный источник VK Bridge -->
+    <script src="https://unpkg.com/@vk/vk-bridge/dist/browser.min.js"></script>
 </head>
 <body>
-    <h2>Обработка запроса...</h2>
-    <p id="status">Запрашиваем разрешение...</p>
+    <h1>ТЕСТ ПРИЛОЖЕНИЯ</h1>
+    <p id="status" style="color: blue; font-size: 20px;">Страница загружена. Ждем VK Bridge...</p>
     
     <script>
-        function setStatus(text, isError = false) {
-            const el = document.getElementById('status');
-            el.innerText = text;
-            el.className = isError ? 'error' : '';
+        // Функция для вывода текста на экран
+        function log(text) {
+            document.getElementById('status').innerText = text;
+            console.log(text); // Дублируем в консоль браузера
         }
 
+        // Шаг 1
+        log("Шаг 1: Проверка vkBridge...");
+        
         if (typeof vkBridge === 'undefined') {
-            setStatus('Ошибка: VK Bridge не загружен.', true);
+            log("ОШИБКА: vkBridge не загрузился (проверьте блокировщики рекламы)!");
         } else {
-            vkBridge.send('VKWebAppInit');
+            log("Шаг 2: vkBridge найден. Инициализация...");
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get('vk_user_id');
-            
-            if (!userId) {
-                setStatus('Ошибка: ВК не передал ID.', true);
-            } else {
-                const BOT_WEBHOOK_URL = "https://using-avoiding-intelligence-undertake.trycloudflare.com/phone/"; 
-
-                vkBridge.send('VKWebAppGetPhoneNumber')
-                    .then(data => {
-                        const phone = data.phone;
-                        setStatus("Номер получен: " + phone + ". Отправляем...");
-                        
-                        return fetch(BOT_WEBHOOK_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ user_id: userId, phone: phone })
+            vkBridge.send('VKWebAppInit')
+                .then(function() {
+                    log("Шаг 3: Инициализация успешна. Читаем URL...");
+                    
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const userId = urlParams.get('vk_user_id');
+                    
+                    if (!userId) {
+                        log("ОШИБКА: ВК не передал ID пользователя в URL!");
+                        return;
+                    }
+                    
+                    log("Шаг 4: ID пользователя получен (" + userId + "). Запрос номера...");
+                    
+                    vkBridge.send('VKWebAppGetPhoneNumber')
+                        .then(function(data) {
+                            const phone = data.phone;
+                            log("Шаг 5: Номер получен: " + phone + ". Отправляем боту...");
+                            
+                            const BOT_WEBHOOK_URL = "https://using-avoiding-intelligence-undertake.trycloudflare.com/phone/";
+                            
+                            fetch(BOT_WEBHOOK_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: userId, phone: phone })
+                            })
+                            .then(function(response) {
+                                if (response.ok) {
+                                    log("Шаг 6: УСПЕХ! Бот получил номер. Можно закрывать окно.");
+                                } else {
+                                    log("ОШИБКА Шаг 6: Бот вернул ошибку " + response.status);
+                                }
+                            })
+                            .catch(function(err) {
+                                log("ОШИБКА Шаг 6: Не удалось отправить боту: " + err.message);
+                            });
+                        })
+                        .catch(function(err) {
+                            log("ОШИБКА Шаг 5: Пользователь отказал в доступе или ошибка: " + JSON.stringify(err));
                         });
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            setStatus("Готово! Можете закрыть окно.");
-                        } else {
-                            setStatus("Ошибка отправки боту (код " + response.status + ")", true);
-                        }
-                    })
-                    .catch(error => {
-                        setStatus("Отказ в доступе: " + error.message, true);
-                    });
-            }
+                })
+                .catch(function(err) {
+                    log("ОШИБКА Шаг 3: Ошибка инициализации: " + JSON.stringify(err));
+                });
         }
     </script>
 </body>
