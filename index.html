@@ -63,6 +63,12 @@
                             .then(function(response) {
                                 if (response.ok) {
                                     log("Шаг 6: УСПЕХ! Бот получил номер.");
+                                    
+                                    // ЗАКРЫВАЕМ ПРИЛОЖЕНИЕ И ВОЗВРАЩАЕМСЯ В ЧАТ
+                                    setTimeout(function() {
+                                        vkBridge.send("VKWebAppClose", {"status": "success"});
+                                    }, 1000); // Ждем 1 секунду, чтобы пользователь успел прочитать "УСПЕХ"
+                                    
                                 } else {
                                     log("ОШИБКА Шаг 6: Бот вернул " + response.status);
                                 }
