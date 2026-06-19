@@ -2,55 +2,70 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Поделиться номером</title>
-    <!-- Подключаем официальный VK Bridge для связи с клиентом ВК -->
-    <script src="https://unpkg.com/@vk/vk-bridge/dist/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vk/vk-bridge/dist/browser.min.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f2f5; }
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f2f5; color: #333; }
         h2 { color: #2787F5; }
+        .error { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h2>Запрашиваем доступ к номеру...</h2>
-    <p id="status">Пожалуйста, подождите.</p>
+    <h2>Обработка запроса...</h2>
+    <p id="status">Инициализация...</p>
     
     <script>
-        // Инициализация VK Bridge
-        vkBridge.send('VKWebAppInit');
+        function setStatus(text, isError = false) {
+            const el = document.getElementById('status');
+            el.innerText = text;
+            el.className = isError ? 'error' : '';
+        }
 
-        // ВК передает данные пользователя в URL при открытии Mini App
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('vk_user_id');
-        
-        // ВАЖНО: Сюда мы впишем ссылку, которую выдаст Ngrok
-        const BOT_WEBHOOK_URL = "https://using-avoiding-intelligence-undertake.trycloudflare.com/phone/";
+        // Проверяем, загрузился ли скрипт вообще
+        if (typeof vkBridge === 'undefined') {
+            setStatus('Ошибка: VK Bridge не загружен. Проверьте интернет.', true);
+        } else {
+            vkBridge.send('VKWebAppInit')
+                .then(() => {
+                    setStatus('Инициализация успешна. Запрашиваем номер...');
+                    
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const userId = urlParams.get('vk_user_id');
+                    
+                    if (!userId) {
+                        setStatus('Ошибка: ВК не передал ID пользователя. Вы открыли приложение не через ВК?', true);
+                        return;
+                    }
 
-        document.getElementById('status').innerText = "Запрашиваем разрешение...";
-        
-        // Вызываем нативный метод ВК для получения номера
-        vkBridge.send('VKWebAppGetPhoneNumber')
-            .then(data => {
-                const phone = data.phone;
-                document.getElementById('status').innerText = "Номер получен: " + phone + ". Отправляем боту...";
-                
-                // Отправляем номер и ID пользователя на сервер вашего C# бота
-                return fetch(BOT_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, phone: phone })
+                    const BOT_WEBHOOK_URL = "https://using-avoiding-intelligence-undertake.trycloudflare.com/phone/"; 
+
+                    vkBridge.send('VKWebAppGetPhoneNumber')
+                        .then(data => {
+                            const phone = data.phone;
+                            setStatus("Номер получен: " + phone + ". Отправляем...");
+                            
+                            return fetch(BOT_WEBHOOK_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: userId, phone: phone })
+                            });
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                setStatus("Готово! Можете закрыть окно.");
+                            } else {
+                                setStatus("Ошибка отправки боту (код " + response.status + ")", true);
+                            }
+                        })
+                        .catch(error => {
+                            setStatus("Отказ в доступе или ошибка: " + error.message, true);
+                        });
+                })
+                .catch(err => {
+                    setStatus("Ошибка инициализации ВК: " + JSON.stringify(err), true);
                 });
-            })
-            .then(response => {
-                if (response.ok) {
-                    document.getElementById('status').innerText = "Готово! Можете закрыть это окно.";
-                } else {
-                    document.getElementById('status').innerText = "Ошибка отправки данных боту.";
-                }
-            })
-            .catch(error => {
-                document.getElementById('status').innerText = "Пользователь отказал в доступе или произошла ошибка.";
-                console.error("Error:", error);
-            });
+        }
     </script>
 </body>
 </html>
