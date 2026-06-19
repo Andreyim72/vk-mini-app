@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Разрешаем открывать страницу во фрейме ВК -->
+    <meta http-equiv="X-Frame-Options" content="ALLOWALL">
     <title>Поделиться номером</title>
     <script src="https://cdn.jsdelivr.net/npm/@vk/vk-bridge/dist/browser.min.js"></script>
     <style>
@@ -25,18 +27,16 @@
         if (typeof vkBridge === 'undefined') {
             setStatus('Ошибка: VK Bridge не загружен.', true);
         } else {
-            // Инициализируем, но не ждём ответа (чтобы не зависало)
             vkBridge.send('VKWebAppInit');
             
             const urlParams = new URLSearchParams(window.location.search);
             const userId = urlParams.get('vk_user_id');
             
             if (!userId) {
-                setStatus('Ошибка: ВК не передал ID пользователя.', true);
+                setStatus('Ошибка: ВК не передал ID.', true);
             } else {
                 const BOT_WEBHOOK_URL = "https://using-avoiding-intelligence-undertake.trycloudflare.com/phone/"; 
 
-                // Сразу запрашиваем номер
                 vkBridge.send('VKWebAppGetPhoneNumber')
                     .then(data => {
                         const phone = data.phone;
@@ -56,7 +56,7 @@
                         }
                     })
                     .catch(error => {
-                        setStatus("Отказ в доступе или ошибка: " + error.message, true);
+                        setStatus("Отказ в доступе: " + error.message, true);
                     });
             }
         }
