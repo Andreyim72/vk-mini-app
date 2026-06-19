@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Поделиться номером</title>
+    <!-- Подключаем официальный VK Bridge для связи с клиентом ВК -->
+    <script src="https://unpkg.com/@vk/vk-bridge/dist/browser.min.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f2f5; }
+        h2 { color: #2787F5; }
+    </style>
+</head>
+<body>
+    <h2>Запрашиваем доступ к номеру...</h2>
+    <p id="status">Пожалуйста, подождите.</p>
+    
+    <script>
+        // Инициализация VK Bridge
+        vkBridge.send('VKWebAppInit');
+
+        // ВК передает данные пользователя в URL при открытии Mini App
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('vk_user_id');
+        
+        // ВАЖНО: Сюда мы впишем ссылку, которую выдаст Ngrok
+        const BOT_WEBHOOK_URL = "https://ВАШ_АДРЕС_NGROK.ngrok-free.app/phone/"; 
+
+        document.getElementById('status').innerText = "Запрашиваем разрешение...";
+        
+        // Вызываем нативный метод ВК для получения номера
+        vkBridge.send('VKWebAppGetPhoneNumber')
+            .then(data => {
+                const phone = data.phone;
+                document.getElementById('status').innerText = "Номер получен: " + phone + ". Отправляем боту...";
+                
+                // Отправляем номер и ID пользователя на сервер вашего C# бота
+                return fetch(BOT_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, phone: phone })
+                });
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('status').innerText = "Готово! Можете закрыть это окно.";
+                } else {
+                    document.getElementById('status').innerText = "Ошибка отправки данных боту.";
+                }
+            })
+            .catch(error => {
+                document.getElementById('status').innerText = "Пользователь отказал в доступе или произошла ошибка.";
+                console.error("Error:", error);
+            });
+    </script>
+</body>
+</html>
